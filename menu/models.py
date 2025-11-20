@@ -16,7 +16,7 @@ class Category(models.Model):
 class MenuItem(models.Model):
     name = models.CharField(max_length=100)
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='items')
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    price = models.IntegerField()
     description = models.TextField(blank=True)
     is_available = models.BooleanField(default=True)
     image = models.ImageField(upload_to='menu_items/', blank=True, null=True)
@@ -31,7 +31,7 @@ class MenuItem(models.Model):
 
 class Combo(models.Model):
     name = models.CharField(max_length=100)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    price = models.IntegerField()
     description = models.TextField(blank=True)
     is_available = models.BooleanField(default=True)
 

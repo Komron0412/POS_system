@@ -53,7 +53,7 @@
                         <div class="item-name">{{ item.item.name }}</div>
                     </div>
                     <div class="item-quantity">{{ item.quantity }}</div>
-                    <div class="item-price">${{ item.subtotal }}</div>
+                    <div class="item-price">{{ item.subtotal }}</div>
                     <button class="remove-btn" onclick="removeOrderItem({{ item.id }}, 'item')">×</button>
                 </div>
                 {% endfor %}
@@ -64,7 +64,7 @@
                         <div class="item-name">{{ combo.combo.name }}</div>
                     </div>
                     <div class="item-quantity">{{ combo.quantity }}</div>
-                    <div class="item-price">${{ combo.subtotal }}</div>
+                    <div class="item-price">{{ combo.subtotal }}</div>
                     <button class="remove-btn" onclick="removeOrderItem({{ combo.id }}, 'combo')">×</button>
                 </div>
                 {% endfor %}
@@ -75,7 +75,7 @@
             </div>
 
             <div class="order-total">
-                Total: $<span id="order-total">{{ active_order.total_amount|default:"0.00" }}</span>
+                Total: <span id="order-total">{{ active_order.total_amount|default:"0" }}</span>
             </div>
 
             <div class="order-actions">
@@ -141,7 +141,7 @@
                             <p>${item.description || 'Chef special served hot.'}</p>
                         </div>
                         <div class="menu-meta-row">
-                            <span class="price">$${parseFloat(item.price).toFixed(2)}</span>
+                            <span class="price">${(item.price)}</span>
                             <div class="quantity-control">
                                 <button class="quantity-btn minus" onclick="event.stopPropagation(); adjustQuantity(this, -1)">-</button>
                                 <input type="text" class="quantity-input" value="1" readonly>
@@ -301,7 +301,7 @@
                             <div class="item-name">${item.item__name}</div>
                         </div>
                         <div class="item-quantity">${item.quantity}</div>
-                        <div class="item-price">$${(item.quantity * parseFloat(item.price)).toFixed(2)}</div>
+                        <div class="item-price">${(item.quantity * (item.price))}</div>
                         <button class="remove-btn" onclick="removeOrderItem(${item.id}, 'item')">×</button>
                     </div>
                 `;
@@ -314,7 +314,7 @@
                             <div class="item-name">${combo.combo__name}</div>
                         </div>
                         <div class="item-quantity">${combo.quantity}</div>
-                        <div class="item-price">$${(combo.quantity * parseFloat(combo.price)).toFixed(2)}</div>
+                        <div class="item-price">${(combo.quantity * (combo.price))}</div>
                         <button class="remove-btn" onclick="removeOrderItem(${combo.id}, 'combo')">×</button>
                     </div>
                 `;
