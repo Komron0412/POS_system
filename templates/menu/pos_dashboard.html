@@ -1,0 +1,374 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FastFood POS System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'menu/css/pos.css' %}">
+</head>
+<body>
+    <div class="notification" id="notification"></div>
+
+    <div class="container">
+        <!-- Menu Section -->
+        <div class="menu-section">
+            <div class="menu-hero">
+                <div>
+                    <p style="letter-spacing: 2px; font-size: 12px; text-transform: uppercase; opacity: 0.8;">Shirin • Tez • Dostona</p>
+                    <h1>AKA_UKA_FAST-FOOD</h1>
+                </div>
+                <div class="menu-hero-cta">
+                    <a href="/orders/report/" class="report-link">Hisobot</a>
+                </div>
+            </div>
+
+            <div class="category-tabs">
+                <button class="category-tab active" data-category="all">Hammasi</button>
+                {% for category in categories %}
+                <button class="category-tab" data-category="{{ category.id }}">{{ category.name }}</button>
+                {% endfor %}
+            </div>
+
+            <div class="menu-grid" id="menu-grid">
+                <!-- Menu items will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Order Section -->
+        <div class="order-section">
+            <div class="order-header">
+                <h2>Hozirgi</h2>
+                <div class="order-number">Buyurtma #<span id="order-number">{{ active_order.display_order_number }}</span></div>
+            </div>
+
+            <div class="order-items" id="order-items">
+                <!-- Order items will be dynamically populated -->
+                {% for item in order_items %}
+                <div class="order-item" data-id="{{ item.id }}" data-type="item">
+                    <div class="item-details">
+                        <div class="item-name">{{ item.item.name }}</div>
+                    </div>
+                    <div class="item-quantity">{{ item.quantity }}</div>
+                    <div class="item-price">${{ item.subtotal }}</div>
+                    <button class="remove-btn" onclick="removeOrderItem({{ item.id }}, 'item')">×</button>
+                </div>
+                {% endfor %}
+
+                {% for combo in order_combos %}
+                <div class="order-item" data-id="{{ combo.id }}" data-type="combo">
+                    <div class="item-details">
+                        <div class="item-name">{{ combo.combo.name }}</div>
+                    </div>
+                    <div class="item-quantity">{{ combo.quantity }}</div>
+                    <div class="item-price">${{ combo.subtotal }}</div>
+                    <button class="remove-btn" onclick="removeOrderItem({{ combo.id }}, 'combo')">×</button>
+                </div>
+                {% endfor %}
+
+                {% if not order_items and not order_combos %}
+                <div class="empty-order">Hech narsa yoq</div>
+                {% endif %}
+            </div>
+
+            <div class="order-total">
+                Total: $<span id="order-total">{{ active_order.total_amount|default:"0.00" }}</span>
+            </div>
+
+            <div class="order-actions">
+                <button class="action-btn clear-btn" onclick="clearOrder()">Tozalash</button>
+                <button class="action-btn checkout-btn" id="checkout-btn"
+                        {% if not order_items and not order_combos %}disabled{% endif %}>
+                    Zakaz
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Menu data
+        const menuData = {
+            items: [
+                {% for item in menu_items %}
+                {
+                    id: {{ item.id }},
+                    name: "{{ item.name|escapejs }}",
+                    price: "{{ item.price }}",
+                    category: {{ item.category.id }},
+                    type: "item",
+                    description: "{{ item.description|default:'Customer favorite'|truncatechars:80|escapejs }}",
+                    image_url: "{% if item.image %}{{ item.image.url }}{% else %}{% static 'menu/img/img.png' %}{% endif %}"
+                },
+                {% endfor %}
+                {% for combo in combos %}
+                {
+                    id: {{ combo.id }},
+                    name: "{{ combo.name|escapejs }}",
+                    price: "{{ combo.price }}",
+                    category: null,
+                    type: "combo",
+                    description: "{{ combo.description|default:'Signature combo meal'|truncatechars:80|escapejs }}",
+                    image_url: "{% static 'menu/img/placeholder.svg' %}"
+                },
+                {% endfor %}
+            ]
+        };
+
+        let currentCategory = 'all';
+
+        // Initialize the menu
+        function initializeMenu() {
+            renderMenuItems();
+            setupCategoryTabs();
+        }
+
+        // Render menu items based on current category
+        function renderMenuItems() {
+            const menuGrid = document.getElementById('menu-grid');
+            const filteredItems = currentCategory === 'all'
+                ? menuData.items
+                : menuData.items.filter(item => item.category == currentCategory || item.type === 'combo');
+
+            menuGrid.innerHTML = filteredItems.map(item => `
+                <div class="menu-item" onclick="addToOrder(${item.id}, '${item.type}')">
+                    <img class="menu-item-photo" src="${item.image_url}" alt="${item.name}">
+                    <div class="menu-item-body">
+                        <div>
+                            <h3>${item.name}</h3>
+                            <p>${item.description || 'Chef special served hot.'}</p>
+                        </div>
+                        <div class="menu-meta-row">
+                            <span class="price">$${parseFloat(item.price).toFixed(2)}</span>
+                            <div class="quantity-control">
+                                <button class="quantity-btn minus" onclick="event.stopPropagation(); adjustQuantity(this, -1)">-</button>
+                                <input type="text" class="quantity-input" value="1" readonly>
+                                <button class="quantity-btn plus" onclick="event.stopPropagation(); adjustQuantity(this, 1)">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Setup category tabs
+        function setupCategoryTabs() {
+            document.querySelectorAll('.category-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.category-tab').forEach(t => {
+                        t.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                    currentCategory = this.getAttribute('data-category');
+                    renderMenuItems();
+                });
+            });
+        }
+
+        // Adjust quantity
+        function adjustQuantity(button, change) {
+            const control = button.closest('.quantity-control');
+            const input = control.querySelector('.quantity-input');
+            let value = parseInt(input.value);
+            value = Math.max(1, value + change);
+            input.value = value;
+        }
+
+        // Add item to order
+        function addToOrder(itemId, itemType) {
+            const menuItem = document.querySelector(`.menu-item[onclick="addToOrder(${itemId}, '${itemType}')"]`);
+            const quantity = parseInt(menuItem.querySelector('.quantity-input').value);
+
+            fetch('/api/add-to-order/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    item_id: itemId,
+                    item_type: itemType,
+                    quantity: quantity
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateOrderDisplay(data.order);
+                    showNotification('Burutma qoshuldi!', 'Muffaqiyatli');
+                    // Reset quantity
+                    menuItem.querySelector('.quantity-input').value = 1;
+                } else {
+                    showNotification('Xato: ' + data.error, 'Xato');
+                }
+            })
+            .catch(error => {
+                showNotification('Network Xato: ' + error, 'Xato');
+            });
+        }
+
+        // Remove item from order
+        function removeOrderItem(itemId, itemType) {
+            fetch('/api/remove-order-item/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    item_id: itemId,
+                    item_type: itemType
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Remove the item from display
+                    document.querySelector(`.order-item[data-id="${itemId}"][data-type="${itemType}"]`)?.remove();
+                    updateOrderTotal(data.total_amount);
+                    checkEmptyOrder();
+                    showNotification('Tozalandi', 'Muffaqiyatli');
+                } else {
+                    showNotification('Xato: ' + data.error, 'Xato');
+                }
+            });
+        }
+
+        // Clear order
+        function clearOrder() {
+            if (!confirm('Hammasini tozlash kerakmi?')) return;
+
+            fetch('/api/clear-order/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('order-items').innerHTML = '<div class="empty-order">Hech narsa yoq</div>';
+                    updateOrderTotal('0.00');
+                    document.getElementById('checkout-btn').disabled = true;
+                    showNotification('Tozalandi', 'Muvaffiyaqatli');
+                } else {
+                    showNotification('Xato: ' + data.error, 'Xato');
+                }
+            });
+        }
+
+        // Checkout
+        document.getElementById('checkout-btn').addEventListener('click', function() {
+            if (this.disabled) return;
+
+            fetch('/api/checkout/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    // Clear current order display
+                    document.getElementById('order-items').innerHTML = '<div class="empty-order">Hech narsa yoq</div>';
+                    updateOrderTotal('0.00');
+                    document.getElementById('checkout-btn').disabled = true;
+                    // Update order number for new order
+                    setTimeout(() => {
+                        location.reload(); // Reload to get new order
+                    }, 2000);
+                } else {
+                    showNotification('Error: ' + data.error, 'error');
+                }
+            });
+        });
+
+        // Update order display
+        function updateOrderDisplay(orderData) {
+            const orderItems = document.getElementById('order-items');
+            let itemsHTML = '';
+
+            orderData.items.forEach(item => {
+                itemsHTML += `
+                    <div class="order-item" data-id="${item.id}" data-type="item">
+                        <div class="item-details">
+                            <div class="item-name">${item.item__name}</div>
+                        </div>
+                        <div class="item-quantity">${item.quantity}</div>
+                        <div class="item-price">$${(item.quantity * parseFloat(item.price)).toFixed(2)}</div>
+                        <button class="remove-btn" onclick="removeOrderItem(${item.id}, 'item')">×</button>
+                    </div>
+                `;
+            });
+
+            orderData.combos.forEach(combo => {
+                itemsHTML += `
+                    <div class="order-item" data-id="${combo.id}" data-type="combo">
+                        <div class="item-details">
+                            <div class="item-name">${combo.combo__name}</div>
+                        </div>
+                        <div class="item-quantity">${combo.quantity}</div>
+                        <div class="item-price">$${(combo.quantity * parseFloat(combo.price)).toFixed(2)}</div>
+                        <button class="remove-btn" onclick="removeOrderItem(${combo.id}, 'combo')">×</button>
+                    </div>
+                `;
+            });
+
+            orderItems.innerHTML = itemsHTML || '<div class="empty-order">Hech narsa yoq</div>';
+            updateOrderTotal(orderData.total_amount);
+            document.getElementById('order-number').textContent = orderData.display_order_number || orderData.order_number;
+            document.getElementById('checkout-btn').disabled = orderData.total_amount === '0.00';
+        }
+
+        // Update order total
+        function updateOrderTotal(total) {
+            document.getElementById('order-total').textContent = parseFloat(total).toFixed(2);
+        }
+
+        // Check if order is empty
+        function checkEmptyOrder() {
+            const orderItems = document.getElementById('order-items');
+            const hasItems = orderItems.querySelector('.order-item');
+            if (!hasItems) {
+                orderItems.innerHTML = '<div class="empty-order">Hech narsa yoq</div>';
+                document.getElementById('checkout-btn').disabled = true;
+            }
+        }
+
+        // Show notification
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            setTimeout(() => {
+                notification.className = 'notification';
+            }, 3000);
+        }
+
+        // Get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initializeMenu);
+    </script>
+</body>
+</html>

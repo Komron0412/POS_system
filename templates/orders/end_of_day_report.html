@@ -1,0 +1,149 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>End of Day Report</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'orders/css/report.css' %}">
+</head>
+<body>
+    <div class="report-shell">
+        <header>
+            <div>
+                <h1>End of Day Report</h1>
+                <p>Summary for {{ report_date|date:"F j, Y" }}</p>
+            </div>
+            <form class="date-form" method="get">
+                <input type="date" name="date" value="{{ report_date|date:'Y-m-d' }}">
+                <button type="submit">Show Report</button>
+            </form>
+        </header>
+
+        {% if info_message %}
+            <div class="info-banner">{{ info_message }}</div>
+        {% endif %}
+
+        <section class="metrics-grid">
+            <div class="metric-card">
+                <span>Total Orders</span>
+                <strong>{{ total_orders }}</strong>
+            </div>
+            <div class="metric-card">
+                <span>Completed</span>
+                <strong>{{ completed_orders }}</strong>
+            </div>
+            <div class="metric-card">
+                <span>Pending / Preparing</span>
+                <strong>{{ pending_orders }}</strong>
+            </div>
+            <div class="metric-card">
+                <span>Cancelled</span>
+                <strong>{{ cancelled_orders }}</strong>
+            </div>
+            <div class="metric-card">
+                <span>Total Sales</span>
+                <strong>${{ total_sales|floatformat:2 }}</strong>
+            </div>
+            <div class="metric-card">
+                <span>Paid Sales</span>
+                <strong>${{ paid_sales|floatformat:2 }}</strong>
+            </div>
+        </section>
+
+        <section class="order-numbers">
+            <h2>Order Numbers ({{ order_numbers|length }})</h2>
+            <div class="order-number-list">
+                {% if order_numbers %}
+                    {% for number in order_numbers %}
+                        <span class="order-chip">#{{ number }}</span>
+                    {% endfor %}
+                {% else %}
+                    <p>No orders for this day.</p>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="order-table-wrapper">
+            {% if orders %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Order #</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th>Paid</th>
+                            <th>Total</th>
+                            <th>Notes</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                            <tr class="order-row" data-order-id="{{ order.id }}">
+                                <td data-label="Order">#{{ order.display_order_number }}</td>
+                                <td data-label="Time">{{ order.created_at|date:"g:i A" }}</td>
+                                <td data-label="Status">
+                                    <span class="status-pill {% if order.status == 'completed' %}completed{% elif order.status == 'cancelled' %}cancelled{% elif order.status == 'pending' or order.status == 'preparing' %}pending{% else %}other{% endif %}">
+                                        {{ order.get_status_display }}
+                                    </span>
+                                </td>
+                                <td data-label="Paid">{{ order.is_paid|yesno:"Yes,No" }}</td>
+                                <td data-label="Total">${{ order.total_amount|floatformat:2 }}</td>
+                                <td data-label="Notes">{{ order.notes|default:"—" }}</td>
+                                <td data-label="Details">
+                                    <button class="toggle-btn" type="button" data-target="detail-{{ order.id }}">View items</button>
+                                </td>
+                            </tr>
+                            <tr class="detail-row">
+                                <td colspan="7">
+                                    <div id="detail-{{ order.id }}" class="detail-panel">
+                                        {% if order.items.all or order.combos.all %}
+                                            <p class="detail-title">Line items</p>
+                                            <div class="detail-items">
+                                                {% for item in order.items.all %}
+                                                    <div class="detail-card">
+                                                        <strong>{{ item.item.name }}</strong>
+                                                        <span>{{ item.quantity }} × ${{ item.price|floatformat:2 }} = ${{ item.subtotal|floatformat:2 }}</span>
+                                                    </div>
+                                                {% endfor %}
+                                                {% for combo in order.combos.all %}
+                                                    <div class="detail-card">
+                                                        <strong>{{ combo.combo.name }} (combo)</strong>
+                                                        <span>{{ combo.quantity }} × ${{ combo.price|floatformat:2 }} = ${{ combo.subtotal|floatformat:2 }}</span>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        {% else %}
+                                            <p class="detail-title">No line items recorded.</p>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">
+                    No orders were found for this date. Complete a sale to begin tracking.
+                </div>
+            {% endif %}
+        </section>
+    </div>
+    <script>
+        document.querySelectorAll('.toggle-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetId = btn.getAttribute('data-target');
+                const panel = document.getElementById(targetId);
+                if (!panel) return;
+                panel.classList.toggle('active');
+                btn.textContent = panel.classList.contains('active') ? 'Hide items' : 'View items';
+            });
+        });
+    </script>
+</body>
+</html>
+
