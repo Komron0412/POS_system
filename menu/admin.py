@@ -11,8 +11,8 @@ class MenuItemAdmin(admin.ModelAdmin):
     list_display = ['name', 'category', 'price', 'is_available']
     list_filter = ['category', 'is_available']
     list_editable = ['price', 'is_available']
-
-@admin.register(Combo)
-class ComboAdmin(admin.ModelAdmin):
-    list_display = ['name', 'price', 'is_available']
-    list_editable = ['price', 'is_available']
+#
+# @admin.register(Combo)
+# class ComboAdmin(admin.ModelAdmin):
+#     list_display = ['name', 'price', 'is_available']
+#     list_editable = ['price', 'is_available']

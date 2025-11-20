@@ -16,6 +16,9 @@ def _get_or_create_daily_active_order():
     ).last()
     if not active_order:
         active_order = Order.objects.create(status='pending')
+    elif not active_order.order_number:
+        active_order.order_number = active_order.generate_daily_order_number()
+        active_order.save(update_fields=['order_number'])
     return active_order
 
 

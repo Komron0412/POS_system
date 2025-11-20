@@ -14,12 +14,12 @@
     <div class="report-shell">
         <header>
             <div>
-                <h1>End of Day Report</h1>
-                <p>Summary for {{ report_date|date:"F j, Y" }}</p>
+                <h1>Kun Hisoboti</h1>
+                <p>Hulosa kun {{ report_date|date:"F j, Y" }}</p>
             </div>
             <form class="date-form" method="get">
                 <input type="date" name="date" value="{{ report_date|date:'Y-m-d' }}">
-                <button type="submit">Show Report</button>
+                <button type="submit">Ko'rsatish</button>
             </form>
         </header>
 
@@ -29,33 +29,29 @@
 
         <section class="metrics-grid">
             <div class="metric-card">
-                <span>Total Orders</span>
+                <span>Hammasi</span>
                 <strong>{{ total_orders }}</strong>
             </div>
             <div class="metric-card">
-                <span>Completed</span>
+                <span>Yakunlanganlar</span>
                 <strong>{{ completed_orders }}</strong>
             </div>
             <div class="metric-card">
-                <span>Pending / Preparing</span>
+                <span>Tayyorlanmoqda</span>
                 <strong>{{ pending_orders }}</strong>
             </div>
             <div class="metric-card">
-                <span>Cancelled</span>
+                <span>Bekor qiligan</span>
                 <strong>{{ cancelled_orders }}</strong>
             </div>
             <div class="metric-card">
-                <span>Total Sales</span>
+                <span>Jami</span>
                 <strong>${{ total_sales|floatformat:2 }}</strong>
-            </div>
-            <div class="metric-card">
-                <span>Paid Sales</span>
-                <strong>${{ paid_sales|floatformat:2 }}</strong>
             </div>
         </section>
 
         <section class="order-numbers">
-            <h2>Order Numbers ({{ order_numbers|length }})</h2>
+            <h2>Buyurtma soni ({{ order_numbers|length }})</h2>
             <div class="order-number-list">
                 {% if order_numbers %}
                     {% for number in order_numbers %}
@@ -75,9 +71,8 @@
                             <th>Order #</th>
                             <th>Time</th>
                             <th>Status</th>
-                            <th>Paid</th>
-                            <th>Total</th>
-                            <th>Notes</th>
+                            <th>Tolangan</th>
+                            <th>Jami</th>
                             <th>Details</th>
                         </tr>
                     </thead>
@@ -85,7 +80,7 @@
                         {% for order in orders %}
                             <tr class="order-row" data-order-id="{{ order.id }}">
                                 <td data-label="Order">#{{ order.display_order_number }}</td>
-                                <td data-label="Time">{{ order.created_at|date:"g:i A" }}</td>
+                                <td data-label="Time">{{ order.updated_at|date:"g:i A" }}</td>
                                 <td data-label="Status">
                                     <span class="status-pill {% if order.status == 'completed' %}completed{% elif order.status == 'cancelled' %}cancelled{% elif order.status == 'pending' or order.status == 'preparing' %}pending{% else %}other{% endif %}">
                                         {{ order.get_status_display }}
@@ -93,7 +88,6 @@
                                 </td>
                                 <td data-label="Paid">{{ order.is_paid|yesno:"Yes,No" }}</td>
                                 <td data-label="Total">${{ order.total_amount|floatformat:2 }}</td>
-                                <td data-label="Notes">{{ order.notes|default:"—" }}</td>
                                 <td data-label="Details">
                                     <button class="toggle-btn" type="button" data-target="detail-{{ order.id }}">View items</button>
                                 </td>
@@ -118,7 +112,7 @@
                                                 {% endfor %}
                                             </div>
                                         {% else %}
-                                            <p class="detail-title">No line items recorded.</p>
+                                            <p class="detail-title">Buyurtma yoq</p>
                                         {% endif %}
                                     </div>
                                 </td>
