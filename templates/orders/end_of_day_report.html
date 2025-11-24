@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>End of Day Report</title>
+    <title>Kun hisoboti</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
@@ -46,19 +46,19 @@
             </div>
             <div class="metric-card">
                 <span>Jami</span>
-                <strong>${{ total_sales|floatformat:2 }}</strong>
+                <strong>{{ total_sales }}</strong>
             </div>
         </section>
 
         <section class="order-numbers">
-            <h2>Buyurtma soni ({{ order_numbers|length }})</h2>
+            <h2>Buyurtma soni - {{ order_numbers|length }}</h2>
             <div class="order-number-list">
                 {% if order_numbers %}
                     {% for number in order_numbers %}
                         <span class="order-chip">#{{ number }}</span>
                     {% endfor %}
                 {% else %}
-                    <p>No orders for this day.</p>
+                    <p>Bu kun uchun buyurtmalar yoq</p>
                 {% endif %}
             </div>
         </section>
@@ -68,9 +68,9 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Order #</th>
-                            <th>Time</th>
-                            <th>Status</th>
+                            <th>Buyurtma #</th>
+                            <th>Vaqt</th>
+                            <th>Holati</th>
                             <th>Tolangan</th>
                             <th>Jami</th>
                             <th>Details</th>
@@ -86,10 +86,10 @@
                                         {{ order.get_status_display }}
                                     </span>
                                 </td>
-                                <td data-label="Paid">{{ order.is_paid|yesno:"Yes,No" }}</td>
-                                <td data-label="Total">${{ order.total_amount|floatformat:2 }}</td>
+                                <td data-label="Paid">{{ order.is_paid|yesno:"Ha,Yoq" }}</td>
+                                <td data-label="Total">{{ order.total_amount }}</td>
                                 <td data-label="Details">
-                                    <button class="toggle-btn" type="button" data-target="detail-{{ order.id }}">View items</button>
+                                    <button class="toggle-btn" type="button" data-target="detail-{{ order.id }}">Buyurtmani ko'rish</button>
                                 </td>
                             </tr>
                             <tr class="detail-row">
@@ -101,13 +101,13 @@
                                                 {% for item in order.items.all %}
                                                     <div class="detail-card">
                                                         <strong>{{ item.item.name }}</strong>
-                                                        <span>{{ item.quantity }} × ${{ item.price|floatformat:2 }} = ${{ item.subtotal|floatformat:2 }}</span>
+                                                        <span>{{ item.quantity }} × {{ item.price}} = {{ item.subtotal }}</span>
                                                     </div>
                                                 {% endfor %}
                                                 {% for combo in order.combos.all %}
                                                     <div class="detail-card">
                                                         <strong>{{ combo.combo.name }} (combo)</strong>
-                                                        <span>{{ combo.quantity }} × ${{ combo.price|floatformat:2 }} = ${{ combo.subtotal|floatformat:2 }}</span>
+                                                        <span>{{ combo.quantity }} × {{ combo.price }} = {{ combo.subtotal }}</span>
                                                     </div>
                                                 {% endfor %}
                                             </div>
@@ -122,7 +122,7 @@
                 </table>
             {% else %}
                 <div class="empty-state">
-                    No orders were found for this date. Complete a sale to begin tracking.
+                    Buyurtmalar topilmadi.Buyurtmani boshlang
                 </div>
             {% endif %}
         </section>
@@ -134,7 +134,7 @@
                 const panel = document.getElementById(targetId);
                 if (!panel) return;
                 panel.classList.toggle('active');
-                btn.textContent = panel.classList.contains('active') ? 'Hide items' : 'View items';
+                btn.textContent = panel.classList.contains('active') ? 'Yashirish' : "Ko'rsatish";
             });
         });
     </script>
