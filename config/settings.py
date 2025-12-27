@@ -85,14 +85,16 @@ WSGI_APPLICATION = "config.wsgi.application"
 # }
 
 
+import os
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'fastfooddb',           # your database name
-        'USER': 'fastfood',         # your DB user
-        'PASSWORD': 'root',     # your DB password
-        'HOST': 'localhost',            # or server IP
-        'PORT': '5432',                 # default postgres port
+        'NAME': os.environ.get('DB_NAME', 'fastfooddb'),
+        'USER': os.environ.get('DB_USER', 'fastfood'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'root'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 
