@@ -24,7 +24,7 @@ from django.urls import path, include
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("menu.urls")),
-    path('orders/', include('orders.urls')),
+    path('orders/', include('orders.urls', namespace='orders')),
     path('', lambda request: redirect('pos_dashboard'))
 ]
 

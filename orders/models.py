@@ -2,14 +2,12 @@ from django.db import models
 from django.utils import timezone
 from datetime import date
 import random
-from menu.models import MenuItem, Combo
+from menu.models import MenuItem
 
 
 class Order(models.Model):
     ORDER_STATUS = [
         ('pending', 'Pending'),
-        ('preparing', 'Preparing'),
-        ('ready', 'Ready'),
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled'),
     ]
@@ -55,39 +53,30 @@ class Order(models.Model):
 
     def calculate_total(self):
         item_total = sum(item.subtotal() for item in self.items.all())
-        combo_total = sum(combo.subtotal() for combo in self.combos.all())
-        self.total_amount = item_total + combo_total
+        self.total_amount = item_total
         self.save()
         return self.total_amount
 
 
 class OrderItem(models.Model):
-    order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)
-    item = models.ForeignKey(MenuItem, on_delete=models.CASCADE)
+    order = models.ForeignKey(Order, related_name='items', on_delete=models.SET_NULL, null=True, blank=True)
+    item = models.ForeignKey(MenuItem, on_delete=models.SET_NULL, null=True, blank=True)
+    item_name = models.CharField(max_length=120, blank=True)
     quantity = models.PositiveIntegerField(default=1)
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:
         ordering = ['-id']
 
+    def save(self, *args, **kwargs):
+        if not self.item_name and self.item:
+            self.item_name = self.item.name
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"{self.quantity} x {self.item.name}"
+        name = self.item_name or (self.item.name if self.item else 'Item')
+        return f"{self.quantity} x {name}"
 
     def subtotal(self):
         return self.quantity * self.price
 
-
-class OrderCombo(models.Model):
-    order = models.ForeignKey(Order, related_name='combos', on_delete=models.CASCADE)
-    combo = models.ForeignKey(Combo, on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField(default=1)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
-
-    class Meta:
-        ordering = ['-id']
-
-    def __str__(self):
-        return f"{self.quantity} x {self.combo.name}"
-
-    def subtotal(self):
-        return self.quantity * self.price

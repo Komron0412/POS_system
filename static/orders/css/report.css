@@ -234,6 +234,29 @@ tbody tr:hover {
     font-size: 13px;
 }
 
+.detail-actions {
+    margin-top: 14px;
+    text-align: right;
+}
+
+.print-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: #2563eb;
+    color: #fff;
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 13px;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.print-btn:hover {
+    background: #1e3fae;
+}
+
 .toggle-btn {
     border: none;
     background: none;

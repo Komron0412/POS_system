@@ -1,0 +1,145 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Receipt #{{ order.display_order_number }}</title>
+    <style>
+        body {
+            font-family: 'Poppins', 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .receipt {
+            width: 320px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+        }
+
+        .brand {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: 22px;
+            letter-spacing: 2px;
+        }
+
+        .meta {
+            text-align: center;
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+        }
+
+        th, td {
+            text-align: left;
+            font-size: 14px;
+            padding: 6px 0;
+        }
+
+        th {
+            border-bottom: 1px solid #e5e7eb;
+            color: #6b7280;
+        }
+
+        .totals {
+            border-top: 1px dashed #d1d5db;
+            padding-top: 10px;
+            font-weight: 600;
+        }
+
+        .print-actions {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .print-actions button {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 8px;
+            background: #2563eb;
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .receipt {
+                box-shadow: none;
+                width: 250px;
+                border-radius: 0;
+            }
+
+            .print-actions {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="receipt">
+        <div class="brand">
+            <h1>AKA_UKA_FAST-FOOD</h1>
+            <p>Buyurtma #{{ order.display_order_number }}</p>
+        </div>
+        <div class="meta">
+            {{ order.created_at|date:"Y-m-d H:i" }} · Status: {{ order.get_status_display }}
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Mahsulot</th>
+                    <th style="text-align:right;">Qty</th>
+                    <th style="text-align:right;">Jami</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in order.items.all %}
+                <tr>
+                    <td>{{ item.item_name }}</td>
+                    <td style="text-align:right;">{{ item.quantity }}</td>
+                    <td style="text-align:right;">{{ item.subtotal }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="totals">
+            Total: {{ order.total_amount }}<br>
+            Tolangan: {{ order.is_paid|yesno:"Ha,Yoq" }}
+        </div>
+
+        <div class="print-actions">
+            <button onclick="window.print()">Chop etish</button>
+        </div>
+    </div>
+
+    <script>
+        {% if auto_print %}
+        window.addEventListener('load', () => {
+            setTimeout(() => window.print(), 400);
+        });
+        {% endif %}
+    </script>
+</body>
+</html>
+

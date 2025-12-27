@@ -95,21 +95,20 @@
                             <tr class="detail-row">
                                 <td colspan="7">
                                     <div id="detail-{{ order.id }}" class="detail-panel">
-                                        {% if order.items.all or order.combos.all %}
+                                        {% if order.items.all %}
                                             <p class="detail-title">Line items</p>
                                             <div class="detail-items">
                                                 {% for item in order.items.all %}
                                                     <div class="detail-card">
-                                                        <strong>{{ item.item.name }}</strong>
+                                                        <strong>{{ item.item_name }}</strong>
                                                         <span>{{ item.quantity }} × {{ item.price}} = {{ item.subtotal }}</span>
                                                     </div>
                                                 {% endfor %}
-                                                {% for combo in order.combos.all %}
-                                                    <div class="detail-card">
-                                                        <strong>{{ combo.combo.name }} (combo)</strong>
-                                                        <span>{{ combo.quantity }} × {{ combo.price }} = {{ combo.subtotal }}</span>
-                                                    </div>
-                                                {% endfor %}
+                                            </div>
+                                            <div class="detail-actions">
+                                                <a class="print-btn" href="{% url 'orders:order_receipt' order.id %}?auto=1" target="_blank">
+                                                    Print receipt
+                                                </a>
                                             </div>
                                         {% else %}
                                             <p class="detail-title">Buyurtma yoq</p>

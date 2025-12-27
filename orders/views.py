@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from django.db.models import Q, Sum
 from django.db.models.functions import Coalesce
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 
 from .models import Order
@@ -24,7 +24,7 @@ def end_of_day_report(request):
 
     orders_for_day = Order.objects.filter(
         created_at__date=report_date
-    ).order_by('created_at').prefetch_related('items__item', 'combos__combo')
+    ).order_by('created_at').prefetch_related('items__item')
 
     aggregates = orders_for_day.aggregate(
         total_sales=Coalesce(Sum('total_amount'), Decimal('0.00')),
@@ -40,7 +40,6 @@ def end_of_day_report(request):
         'order_numbers': order_numbers,
         'total_orders': orders_for_day.count(),
         'paid_orders': orders_for_day.filter(is_paid=True).count(),
-        'unpaid_orders': orders_for_day.filter(is_paid=False).count(),
         'completed_orders': orders_for_day.filter(status='completed').count(),
         'pending_orders': orders_for_day.exclude(status__in=['completed', 'cancelled']).count(),
         'cancelled_orders': orders_for_day.filter(status='cancelled').count(),
@@ -49,3 +48,15 @@ def end_of_day_report(request):
     }
 
     return render(request, 'orders/end_of_day_report.html', context)
+
+
+def order_receipt(request, pk):
+    order = get_object_or_404(
+        Order.objects.prefetch_related('items__item'),
+        pk=pk
+    )
+    context = {
+        'order': order,
+        'auto_print': request.GET.get('auto') == '1',
+    }
+    return render(request, 'orders/receipt.html', context)

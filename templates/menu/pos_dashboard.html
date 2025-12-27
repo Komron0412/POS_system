@@ -1,6 +1,7 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,6 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'menu/css/pos.css' %}">
 </head>
+
 <body>
     <div class="notification" id="notification"></div>
 
@@ -18,11 +20,25 @@
         <div class="menu-section">
             <div class="menu-hero">
                 <div>
-                    <p style="letter-spacing: 2px; font-size: 12px; text-transform: uppercase; opacity: 0.8;">Shirin • Tez • Dostona</p>
+                    <p style="letter-spacing: 2px; font-size: 12px; text-transform: uppercase; opacity: 0.8;">Shirin •
+                        Tez • Dostona</p>
                     <h1>AKA_UKA_FAST-FOOD</h1>
                 </div>
                 <div class="menu-hero-cta">
+                    <a href="/admin/" class="admin-link">Admin Panel</a>
                     <a href="/orders/report/" class="report-link">Hisobot</a>
+                </div>
+            </div>
+
+            <div class="search-container">
+                <div class="search-wrapper">
+                    <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" id="menu-search" placeholder="Ovqat qidirish..." class="search-input">
                 </div>
             </div>
 
@@ -42,34 +58,24 @@
         <div class="order-section">
             <div class="order-header">
                 <h2>Hozirgi</h2>
-                <div class="order-number">Buyurtma #<span id="order-number">{{ active_order.display_order_number }}</span></div>
+                <div class="order-number">Buyurtma #<span id="order-number">{{active_order.display_order_number}}</span>
+                </div>
             </div>
 
             <div class="order-items" id="order-items">
                 <!-- Order items will be dynamically populated -->
                 {% for item in order_items %}
-                <div class="order-item" data-id="{{ item.id }}" data-type="item">
+                <div class="order-item" data-id="{{ item.id }}">
                     <div class="item-details">
-                        <div class="item-name">{{ item.item.name }}</div>
+                        <div class="item-name">{{ item.item_name }}</div>
                     </div>
                     <div class="item-quantity">{{ item.quantity }}</div>
                     <div class="item-price">{{ item.subtotal }}</div>
-                    <button class="remove-btn" onclick="removeOrderItem({{ item.id }}, 'item')">×</button>
+                    <button class="remove-btn" data-item-id="{{ item.id }}"
+                        onclick="removeOrderItem(this.dataset.itemId)">×</button>
                 </div>
                 {% endfor %}
-
-                {% for combo in order_combos %}
-                <div class="order-item" data-id="{{ combo.id }}" data-type="combo">
-                    <div class="item-details">
-                        <div class="item-name">{{ combo.combo.name }}</div>
-                    </div>
-                    <div class="item-quantity">{{ combo.quantity }}</div>
-                    <div class="item-price">{{ combo.subtotal }}</div>
-                    <button class="remove-btn" onclick="removeOrderItem({{ combo.id }}, 'combo')">×</button>
-                </div>
-                {% endfor %}
-
-                {% if not order_items and not order_combos %}
+                {% if not order_items %}
                 <div class="empty-order">Hech narsa yoq</div>
                 {% endif %}
             </div>
@@ -80,60 +86,34 @@
 
             <div class="order-actions">
                 <button class="action-btn clear-btn" onclick="clearOrder()">Tozalash</button>
-                <button class="action-btn checkout-btn" id="checkout-btn"
-                        {% if not order_items and not order_combos %}disabled{% endif %}>
+                <button class="action-btn checkout-btn" id="checkout-btn" {% if not order_items %}disabled{% endif %}>
                     Zakaz
                 </button>
             </div>
         </div>
     </div>
 
+    {{ menu_payload|json_script:"menu-items-data" }}
     <script>
-        // Menu data
-        const menuData = {
-            items: [
-                {% for item in menu_items %}
-                {
-                    id: {{ item.id }},
-                    name: "{{ item.name|escapejs }}",
-                    price: "{{ item.price }}",
-                    category: {{ item.category.id }},
-                    type: "item",
-                    description: "{{ item.description|default:'Customer favorite'|truncatechars:80|escapejs }}",
-                    image_url: "{% if item.image %}{{ item.image.url }}{% else %}{% static 'menu/img/img.png' %}{% endif %}"
-                },
-                {% endfor %}
-                {% for combo in combos %}
-                {
-                    id: {{ combo.id }},
-                    name: "{{ combo.name|escapejs }}",
-                    price: "{{ combo.price }}",
-                    category: null,
-                    type: "combo",
-                    description: "{{ combo.description|default:'Signature combo meal'|truncatechars:80|escapejs }}",
-                    image_url: "{% static 'menu/img/placeholder.svg' %}"
-                },
-                {% endfor %}
-            ]
-        };
-
+        const menuItems = JSON.parse(document.getElementById('menu-items-data').textContent);
         let currentCategory = 'all';
+        let searchQuery = '';
 
-        // Initialize the menu
         function initializeMenu() {
             renderMenuItems();
             setupCategoryTabs();
         }
 
-        // Render menu items based on current category
         function renderMenuItems() {
             const menuGrid = document.getElementById('menu-grid');
-            const filteredItems = currentCategory === 'all'
-                ? menuData.items
-                : menuData.items.filter(item => item.category == currentCategory || item.type === 'combo');
+            const filteredItems = menuItems.filter(item => {
+                const matchesCategory = currentCategory === 'all' || String(item.category) === currentCategory;
+                const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+                return matchesCategory && matchesSearch;
+            });
 
             menuGrid.innerHTML = filteredItems.map(item => `
-                <div class="menu-item" onclick="addToOrder(${item.id}, '${item.type}')">
+                <div class="menu-item" onclick="addToOrder(${item.id})">
                     <img class="menu-item-photo" src="${item.image_url}" alt="${item.name}">
                     <div class="menu-item-body">
                         <div>
@@ -141,7 +121,7 @@
                             <p>${item.description || 'Chef special served hot.'}</p>
                         </div>
                         <div class="menu-meta-row">
-                            <span class="price">${(item.price)}</span>
+                            <span class="price">${parseInt(item.price)}</span>
                             <div class="quantity-control">
                                 <button class="quantity-btn minus" onclick="event.stopPropagation(); adjustQuantity(this, -1)">-</button>
                                 <input type="text" class="quantity-input" value="1" readonly>
@@ -153,13 +133,10 @@
             `).join('');
         }
 
-        // Setup category tabs
         function setupCategoryTabs() {
             document.querySelectorAll('.category-tab').forEach(tab => {
-                tab.addEventListener('click', function() {
-                    document.querySelectorAll('.category-tab').forEach(t => {
-                        t.classList.remove('active');
-                    });
+                tab.addEventListener('click', function () {
+                    document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
                     this.classList.add('active');
                     currentCategory = this.getAttribute('data-category');
                     renderMenuItems();
@@ -167,7 +144,16 @@
             });
         }
 
-        // Adjust quantity
+        function setupSearch() {
+            const searchInput = document.getElementById('menu-search');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    searchQuery = e.target.value;
+                    renderMenuItems();
+                });
+            }
+        }
+
         function adjustQuantity(button, change) {
             const control = button.closest('.quantity-control');
             const input = control.querySelector('.quantity-input');
@@ -176,9 +162,8 @@
             input.value = value;
         }
 
-        // Add item to order
-        function addToOrder(itemId, itemType) {
-            const menuItem = document.querySelector(`.menu-item[onclick="addToOrder(${itemId}, '${itemType}')"]`);
+        function addToOrder(itemId) {
+            const menuItem = document.querySelector(`.menu-item[onclick="addToOrder(${itemId})"]`);
             const quantity = parseInt(menuItem.querySelector('.quantity-input').value);
 
             fetch('/api/add-to-order/', {
@@ -189,54 +174,47 @@
                 },
                 body: JSON.stringify({
                     item_id: itemId,
-                    item_type: itemType,
+                    item_type: 'item',
                     quantity: quantity
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    updateOrderDisplay(data.order);
-                    showNotification('Burutma qoshuldi!', 'Muffaqiyatli');
-                    // Reset quantity
-                    menuItem.querySelector('.quantity-input').value = 1;
-                } else {
-                    showNotification('Xato: ' + data.error, 'Xato');
-                }
-            })
-            .catch(error => {
-                showNotification('Network Xato: ' + error, 'Xato');
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateOrderDisplay(data.order);
+                        showNotification('Buyurtma qo‘shildi!', 'success');
+                        menuItem.querySelector('.quantity-input').value = 1;
+                    } else {
+                        showNotification('Xato: ' + data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    showNotification('Network xato: ' + error, 'error');
+                });
         }
 
-        // Remove item from order
-        function removeOrderItem(itemId, itemType) {
+        function removeOrderItem(itemId) {
             fetch('/api/remove-order-item/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCookie('csrftoken')
                 },
-                body: JSON.stringify({
-                    item_id: itemId,
-                    item_type: itemType
-                })
+                body: JSON.stringify({ item_id: itemId })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Remove the item from display
-                    document.querySelector(`.order-item[data-id="${itemId}"][data-type="${itemType}"]`)?.remove();
-                    updateOrderTotal(data.total_amount);
-                    checkEmptyOrder();
-                    showNotification('Tozalandi', 'Muffaqiyatli');
-                } else {
-                    showNotification('Xato: ' + data.error, 'Xato');
-                }
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.querySelector(`.order-item[data-id="${itemId}"]`)?.remove();
+                        updateOrderTotal(data.total_amount);
+                        checkEmptyOrder();
+                        showNotification('Tozalandi', 'success');
+                    } else {
+                        showNotification('Xato: ' + data.error, 'error');
+                    }
+                });
         }
 
-        // Clear order
         function clearOrder() {
             if (!confirm('Hammasini tozlash kerakmi?')) return;
 
@@ -247,21 +225,20 @@
                     'X-CSRFToken': getCookie('csrftoken')
                 }
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    document.getElementById('order-items').innerHTML = '<div class="empty-order">Hech narsa yoq</div>';
-                    updateOrderTotal('0.00');
-                    document.getElementById('checkout-btn').disabled = true;
-                    showNotification('Tozalandi', 'Muvaffiyaqatli');
-                } else {
-                    showNotification('Error: ' + data.error, 'Error');
-                }
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('order-items').innerHTML = '<div class="empty-order">Hech narsa yoq</div>';
+                        updateOrderTotal('0.00');
+                        document.getElementById('checkout-btn').disabled = true;
+                        showNotification('Buyurtma tozalandi', 'success');
+                    } else {
+                        showNotification('Xato: ' + data.error, 'error');
+                    }
+                });
         }
 
-        // Checkout
-        document.getElementById('checkout-btn').addEventListener('click', function() {
+        document.getElementById('checkout-btn').addEventListener('click', function () {
             if (this.disabled) return;
 
             fetch('/api/checkout/', {
@@ -271,51 +248,36 @@
                     'X-CSRFToken': getCookie('csrftoken')
                 }
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showNotification(data.message, 'success');
-                    // Clear current order display
-                    document.getElementById('order-items').innerHTML = '<div class="empty-order">Hech narsa yoq</div>';
-                    updateOrderTotal('0.00');
-                    document.getElementById('checkout-btn').disabled = true;
-                    // Update order number for new order
-                    setTimeout(() => {
-                        location.reload(); // Reload to get new order
-                    }, 2000);
-                } else {
-                    showNotification('Error: ' + data.error, 'error');
-                }
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        if (data.receipt_url) {
+                            window.open(data.receipt_url, '_blank');
+                        }
+                        showNotification(data.message, 'success');
+                        document.getElementById('order-items').innerHTML = '<div class="empty-order">Hech narsa yoq</div>';
+                        updateOrderTotal('0.00');
+                        document.getElementById('checkout-btn').disabled = true;
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        showNotification('Xato: ' + data.error, 'error');
+                    }
+                });
         });
 
-        // Update order display
         function updateOrderDisplay(orderData) {
             const orderItems = document.getElementById('order-items');
             let itemsHTML = '';
 
             orderData.items.forEach(item => {
                 itemsHTML += `
-                    <div class="order-item" data-id="${item.id}" data-type="item">
+                    <div class="order-item" data-id="${item.id}">
                         <div class="item-details">
-                            <div class="item-name">${item.item__name}</div>
+                            <div class="item-name">${item.item_name}</div>
                         </div>
                         <div class="item-quantity">${item.quantity}</div>
-                        <div class="item-price">${(item.quantity * (item.price))}</div>
-                        <button class="remove-btn" onclick="removeOrderItem(${item.id}, 'item')">×</button>
-                    </div>
-                `;
-            });
-
-            orderData.combos.forEach(combo => {
-                itemsHTML += `
-                    <div class="order-item" data-id="${combo.id}" data-type="combo">
-                        <div class="item-details">
-                            <div class="item-name">${combo.combo__name}</div>
-                        </div>
-                        <div class="item-quantity">${combo.quantity}</div>
-                        <div class="item-price">${(combo.quantity * (combo.price))}</div>
-                        <button class="remove-btn" onclick="removeOrderItem(${combo.id}, 'combo')">×</button>
+                        <div class="item-price">${(item.quantity * parseInt(item.price))}</div>
+                        <button class="remove-btn" onclick="removeOrderItem(${item.id})">×</button>
                     </div>
                 `;
             });
@@ -326,12 +288,10 @@
             document.getElementById('checkout-btn').disabled = orderData.total_amount === '0.00';
         }
 
-        // Update order total
         function updateOrderTotal(total) {
             document.getElementById('order-total').textContent = parseFloat(total).toFixed(2);
         }
 
-        // Check if order is empty
         function checkEmptyOrder() {
             const orderItems = document.getElementById('order-items');
             const hasItems = orderItems.querySelector('.order-item');
@@ -341,7 +301,6 @@
             }
         }
 
-        // Show notification
         function showNotification(message, type) {
             const notification = document.getElementById('notification');
             notification.textContent = message;
@@ -351,7 +310,6 @@
             }, 3000);
         }
 
-        // Get CSRF token
         function getCookie(name) {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
@@ -367,8 +325,11 @@
             return cookieValue;
         }
 
-        // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', initializeMenu);
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeMenu();
+            setupSearch();
+        });
     </script>
 </body>
+
 </html>
